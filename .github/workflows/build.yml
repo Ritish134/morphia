@@ -13,20 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: 'temurin'
-          server-id: central
-          cache: maven
-
-      - name: Find MongoDB versions
-        id: mongo-versions
-        run: |
-          curl -Ls https://sh.jbang.dev | bash -s - app setup
-          echo "mongo_versions=$( ~/.jbang/bin/jbang --verbose .github/BuildMatrix.java )" >> $GITHUB_OUTPUT
-
       - name: Is releasable branch
         id: releasable
         run: |
@@ -43,13 +29,12 @@ jobs:
           fi          
 
     outputs:
-      version_matrix: ${{ steps.mongo-versions.outputs.mongo_versions }}
       releasable: ${{ steps.releasable.outputs.releasable }}
 
   Release:
     needs:
       - Matrix
-    if: ${{ needs.Matrix.outputs.releasable == "true" }}
+    if: ${{ needs.Matrix.outputs.releasable == true }}
     runs-on: ubuntu-latest
     steps:
       - run: echo "I'm releasing releasable = ${{ needs.Matrix.outputs.releasable }}"
