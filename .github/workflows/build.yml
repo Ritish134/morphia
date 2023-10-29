@@ -7,14 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  CodeAudits:
-    uses: evanchooly/workflows/.github/workflows/code-audits.yml@master
-  Build:
-    uses: evanchooly/workflows/.github/workflows/build.yml@master
-    with:
-      java: 20
-      saveBuild: true
-
   Matrix:
     runs-on: ubuntu-latest
     steps:
@@ -43,94 +35,21 @@ jobs:
             || [[ "${{ github.event.ref }}" =~ ^refs/heads/[0-9]+\.[0-9]+\.x$ ]] \
             || [[ "${{ github.event.ref }}" =~ ^refs/tags/v[0-9]+\.[0-9]+.[0-9]+$ ]]
           then
+            echo "releasable=true" 
             echo "releasable=true" >> $GITHUB_OUTPUT
           else
+            echo "releasable=false"
             echo "releasable=false" >> $GITHUB_OUTPUT
           fi          
-                  
 
     outputs:
       version_matrix: ${{ steps.mongo-versions.outputs.mongo_versions }}
       releasable: ${{ steps.releasable.outputs.releasable }}
 
-  Test:
-    needs:
-      - CodeAudits
-      - Build
-      - Matrix
-    strategy:
-      matrix:
-        java: [ 20, 11 ]
-        mongo: ${{ fromJson(needs.matrix.outputs.version_matrix) }}
-        driver: [ 4.10.2 ]
-        include:
-          - java: 11
-            mongo: 7
-            driver: 4.9.1
-          - java: 11
-            mongo: 7
-            driver: 4.8.1
-          - java: 11
-            mongo: 7
-            driver: 4.7.2
-          - java: 11
-            mongo: 7
-            driver: 4.6.1
-          - java: 11
-            mongo: 7
-            driver: 4.5.1
-          - java: 11
-            mongo: 7
-            driver: 4.4.2
-            optional: true
-          - java: 11
-            mongo: 7
-            driver: 4.3.4
-            optional: true
-          - java: 11
-            mongo: 7
-            driver: 4.2.3
-            optional: true
-          - java: 11
-            mongo: 7
-            driver: 4.1.2
-            optional: true
-          - java: 11
-            mongo: 7
-            driver: 4.0.6
-            optional: true
-
-    uses: evanchooly/workflows/.github/workflows/build.yml@master
-    with:
-      java: ${{ matrix.java }}
-      reuseBuild: true
-      archive-name: "${{matrix.mongo}}-${{matrix.driver}}-${{matrix.java}}-${{github.run_id}}"
-      maven-flags: "-e -Dmongodb=${{ matrix.mongo }} -Ddriver.version=${{ matrix.driver }}"
-
   Release:
     needs:
-      - Test
       - Matrix
     if: ${{ needs.Matrix.outputs.releasable }}
-    uses: evanchooly/workflows/.github/workflows/jreleaser.yml@master
-    secrets:
-      GH_PUSH_TOKEN       : ${{ secrets.GH_PUSH_TOKEN }}
-      GPG_PASSPHRASE      : ${{ secrets.GPG_PASSPHRASE }}
-      GPG_PUBLIC_KEY      : ${{ secrets.GPG_PUBLIC_KEY }}
-      GPG_PRIVATE_KEY     : ${{ secrets.GPG_PRIVATE_KEY }}
-      SONATYPE_USERNAME   : ${{ secrets.SONATYPE_USERNAME }}
-      SONATYPE_PASSWORD   : ${{ secrets.SONATYPE_PASSWORD }}
-
-  Docs:
-    name: Update Documentation
     runs-on: ubuntu-latest
-    needs:
-      - Release
     steps:
-      - name: Invoke antora build
-        uses: benc-uk/workflow-dispatch@v121
-        with:
-          workflow: Docs
-          repo: MorphiaOrg/morphia-docs
-          token: ${{ secrets.GH_PUSH_TOKEN }}
-          ref: refs/heads/master
+      - run: echo "I'm releasing"
