@@ -52,4 +52,4 @@ jobs:
     if: ${{ needs.Matrix.outputs.releasable }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo "I'm releasing"
+      - run: echo "I'm releasing releasable = ${{ needs.Matrix.outputs.releasable }}"
