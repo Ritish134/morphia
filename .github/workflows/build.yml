@@ -49,7 +49,7 @@ jobs:
   Release:
     needs:
       - Matrix
-    if: ${{ needs.Matrix.outputs.releasable }}
+    if: ${{ needs.Matrix.outputs.releasable == "true" }}
     runs-on: ubuntu-latest
     steps:
       - run: echo "I'm releasing releasable = ${{ needs.Matrix.outputs.releasable }}"
