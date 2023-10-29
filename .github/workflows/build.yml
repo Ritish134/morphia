@@ -7,12 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  Build:
-    uses: evanchooly/workflows/.github/workflows/build.yml@master
-    with:
-      java: 20
-      saveBuild: true
-
   Matrix:
     runs-on: ubuntu-latest
     steps:
@@ -30,34 +24,24 @@ jobs:
             echo "releasable=true" 
             echo "releasable=true" >> $GITHUB_OUTPUT
           else
-            echo "releasable=false"
+            echo "releasable=false" 
             echo "releasable=false" >> $GITHUB_OUTPUT
           fi          
 
     outputs:
       releasable: ${{ steps.releasable.outputs.releasable }}
 
-  Test:
+  Debug:
     needs:
-      - Build
       - Matrix
-    strategy:
-      matrix:
-        java: [ 20 ]
-        mongo: [ 7 ]
-        driver: [ 4.10.2 ]
-    uses: evanchooly/workflows/.github/workflows/build.yml@master
-    with:
-      java: ${{ matrix.java }}
-      reuseBuild: true
-      archive-name: "${{matrix.mongo}}-${{matrix.driver}}-${{matrix.java}}-${{github.run_id}}"
-      maven-flags: "-e -Dmongodb=${{ matrix.mongo }} -Ddriver.version=${{ matrix.driver }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo releasable = ${{ needs.Matrix.outputs.releasable }} "
 
   Release:
     needs:
-      - Test
       - Matrix
-    if: ${{ needs.Matrix.outputs.releasable == true }}
+    if: needs.Matrix.outputs.releasable
     uses: evanchooly/workflows/.github/workflows/jreleaser.yml@master
     secrets:
       GH_PUSH_TOKEN       : ${{ secrets.GH_PUSH_TOKEN }}
@@ -66,17 +50,3 @@ jobs:
       GPG_PRIVATE_KEY     : ${{ secrets.GPG_PRIVATE_KEY }}
       SONATYPE_USERNAME   : ${{ secrets.SONATYPE_USERNAME }}
       SONATYPE_PASSWORD   : ${{ secrets.SONATYPE_PASSWORD }}
-
-  Docs:
-    name: Update Documentation
-    runs-on: ubuntu-latest
-    needs:
-      - Release
-    steps:
-      - name: Invoke antora build
-        uses: benc-uk/workflow-dispatch@v121
-        with:
-          workflow: Docs
-          repo: MorphiaOrg/morphia-docs
-          token: ${{ secrets.GH_PUSH_TOKEN }}
-          ref: refs/heads/master
