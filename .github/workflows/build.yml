@@ -13,21 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-    outputs:
-      releasable: ${{ steps.releasable.outputs.releasable }}
-
-  Debug:
-    needs:
-      - Matrix
-    runs-on: ubuntu-latest
-    steps:
-      - run: "echo releasable = ${{ needs.Matrix.outputs.releasable }} "
-
-  Release:
-    needs:
-      - Matrix
-    runs-on: ubuntu-latest
-    steps:
       - name: Is releasable branch
         id: releasable
         run: |
@@ -43,13 +28,25 @@ jobs:
             echo "releasable=false" >> $GITHUB_OUTPUT
           fi          
 
-      - name: push release
-        if: ${{ steps.releasable.releasable }}
-        uses: evanchooly/workflows/.github/workflows/jreleaser.yml@master
-        with:
-          GH_PUSH_TOKEN       : ${{ secrets.DUMMY }}
-          GPG_PASSPHRASE      : ${{ secrets.DUMMY }}
-          GPG_PUBLIC_KEY      : ${{ secrets.DUMMY }}
-          GPG_PRIVATE_KEY     : ${{ secrets.DUMMY }}
-          SONATYPE_USERNAME   : ${{ secrets.DUMMY }}
-          SONATYPE_PASSWORD   : ${{ secrets.DUMMY }}
+    outputs:
+      releasable: ${{ steps.releasable.outputs.releasable }}
+
+  Debug:
+    needs:
+      - Matrix
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo releasable = ${{ needs.Matrix.outputs.releasable }} "
+
+  Release:
+    needs:
+      - Matrix
+    if: needs.Matrix.outputs.releasable
+    uses: evanchooly/workflows/.github/workflows/jreleaser.yml@master
+    secrets:
+      GH_PUSH_TOKEN       : ${{ secrets.GH_PUSH_TOKEN }}
+      GPG_PASSPHRASE      : ${{ secrets.GPG_PASSPHRASE }}
+      GPG_PUBLIC_KEY      : ${{ secrets.GPG_PUBLIC_KEY }}
+      GPG_PRIVATE_KEY     : ${{ secrets.GPG_PRIVATE_KEY }}
+      SONATYPE_USERNAME   : ${{ secrets.SONATYPE_USERNAME }}
+      SONATYPE_PASSWORD   : ${{ secrets.SONATYPE_PASSWORD }}
